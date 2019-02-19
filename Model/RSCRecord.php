@@ -14,26 +14,26 @@ class RSCRecord extends RSCAppModel {
 	);
 	public $validate = array(
 		'name' => array(
-			'rule' => 'notempty',
+			'rule' => ['notBlank'],
 			'allowEmpty' => false
 		),
 		'type' => array(
-			'rule' => 'notempty',
+			'rule' => ['notBlank'],
 			'allowEmpty' => false,
 		),
 		'zone' => array(
-			'rule' => 'notempty',
+			'rule' => ['notBlank'],
 			'allowEmpty' => false,
 		),
 		'data' => array(
-			'rule' => 'notempty',
+			'rule' => ['notBlank'],
 			'allowEmpty' => false,
 		),
 		'priority' => array(
-			'rule' => 'notempty',
+			'rule' => ['notBlank'],
 		),
 		'ttl' => array(
-			'rule' => 'notempty',
+			'rule' => ['notBlank'],
 		),
 	);
 	

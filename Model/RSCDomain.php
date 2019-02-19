@@ -10,11 +10,11 @@ class RSCDomain extends RSCAppModel {
 	);
 	public $validate = array(
 		'name' => array(
-			'rule' => 'notempty',
+			'rule' => ['notBlank'],
 			'allowEmpty' => false
 		),
 		'ttl' => array(
-			'rule' => 'notempty',
+			'rule' => ['notBlank'],
 			'allowEmpty' => false
 		),
 		'emailAddress' => array(
