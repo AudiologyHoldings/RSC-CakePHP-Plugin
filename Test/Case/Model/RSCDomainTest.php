@@ -63,22 +63,22 @@ class RSCDomainCase extends CakeTestCase {
 		//Test create.
 		$data = array(
 			'name' => 'nick-is-awesome.com',
-			'emailAddress' => 'nbaker@healthyhearing.com',
+			'emailAddress' => 'nick.baker@continued.com',
 			'ttl' => 3600
 		);
 		$result = $this->RSCDomain->save($data);
 		$this->assertEqual('nick-is-awesome.com', $result['RSCDomain']['name']);
-		$this->assertEqual('nbaker@healthyhearing.com', $result['RSCDomain']['emailAddress']);
+		$this->assertEqual('nick.baker@continued.com', $result['RSCDomain']['emailAddress']);
 		
 		//Test update
 		$data = array(
 			'name' => 'nick-is-awesome.com',
-			'emailAddress' => 'nick.baker@alliedhealthmedia.com',
+			'emailAddress' => 'nick.baker@continued.com',
 			'ttl' => 3600
 		);
 		$result = $this->RSCDomain->save($data);
 		$this->assertEqual('nick-is-awesome.com', $result['RSCDomain']['name']);
-		$this->assertEqual('nick.baker@alliedhealthmedia.com', $result['RSCDomain']['emailAddress']);
+		$this->assertEqual('nick.baker@continued.com', $result['RSCDomain']['emailAddress']);
 	}
 	
 	public function test_delete() {
