@@ -138,8 +138,8 @@ class RSCRecordCase extends CakeTestCase {
 			);
 			
 			$result = $RSCDomain->save($data);
-			$this->assertEqual('nick-is-awesome.com', $result['RSCRecord']['name']);
-			$this->assertEqual('nbaker@healthyhearing.com', $result['RSCRecord']['emailAddress']);
+			$this->assertEqual('nick-is-awesome.com', $result['RSCDomain']['name']);
+			$this->assertEqual('nbaker@healthyhearing.com', $result['RSCDomain']['emailAddress']);
 		}
 	}
 	

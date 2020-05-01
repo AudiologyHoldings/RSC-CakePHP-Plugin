@@ -169,23 +169,27 @@ class RSCRecord extends RSCAppModel {
 		if ($this->recordExists($data['name'], $zone)) {
 			$Record = $this->__getRecordByNameAndZone($data['name'], $zone);
 			$Record->update($data);
-		} else {
-			$Domain = $this->__getDomainObjectByZone($zone);
-			$Record = $Domain->Record()->Create($data);
+		} else {  // Create it
+			$async = $this->__getDomainObjectByZone($zone)->Record()->Create($data);
+			$async->waitFor('COMPLETED');  // Wait for asyncresponse to complete or error out
+			if ($async->status == 'ERROR') {
+				$this->_error(!empty($async->error->details) ? $async->error->details : "Unable to create DNS record for {$data['name']} on zone {$zone}.");
+			}
+			$Record = !empty($async->response->records) ? $async->response->records[0] : null;
 		}
 		if ($Record) {
-			return array(
-				$this->alias => array(
-					'id' => $Record->Id(),
-					'name' => $Record->Name(),
+			return [
+				$this->alias => [
+					'id' => $Record->id,
+					'name' => $Record->name,
 					'zone' => $zone,
 					'type' => $Record->type,
 					'ttl' => $Record->ttl,
 					'data' => $Record->data,
 					'created' => $Record->created,
 					'updated' => $Record->updated,
-				)
-			);
+				]
+			];
 		}
 		return false;
 	}
