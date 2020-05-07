@@ -41,13 +41,15 @@ class RSCRecordCase extends CakeTestCase {
 		$this->assertTrue(!empty($result));
 		$this->assertEqual('manage-website.com', $result[0]['RSCRecord']['zone']);
 		
-		//Should work according to API I'm sending the right data through but still gets all records.
-		/*$result = $this->RSCRecord->find('all', array(
+		$result = $this->RSCRecord->find('all', array(
 			'conditions' => array(
 				'zone' => 'manage-website.com',
 				'type' => 'A'
 			)
-		));*/
+		));
+		$this->assertTrue(!empty($result));
+		$this->assertEqual('manage-website.com', $result[0]['RSCRecord']['zone']);
+		$this->assertEqual('A', $result[0]['RSCRecord']['type']);
 	}
 
 	public function test_save_validates() {
@@ -78,6 +80,12 @@ class RSCRecordCase extends CakeTestCase {
 		$this->assertEqual('pop.nick-is-awesome.com', $result['RSCRecord']['name']);
 		$this->assertEqual('pop.gmail.com', $result['RSCRecord']['data']);
 		$this->assertEqual('CNAME', $result['RSCRecord']['type']);
+
+		// Test record exists
+		$result = $this->RSCRecord->recordExists($record_data['name'], $record_data['zone']);
+		$this->assertEqual('pop.nick-is-awesome.com', $result->name);
+		$this->assertEqual('pop.gmail.com', $result->data);
+		$this->assertEqual('CNAME', $result->type);
 		
 		//Test Update
 		$record_data = array(
@@ -87,7 +95,7 @@ class RSCRecordCase extends CakeTestCase {
 			'data' => 'pop.yahoo.com',
 			'ttl' => '3600',
 		);
-		
+
 		$result = $this->RSCRecord->save($record_data);
 		$this->assertTrue(!empty($result));
 		$this->assertEqual('pop.nick-is-awesome.com', $result['RSCRecord']['name']);

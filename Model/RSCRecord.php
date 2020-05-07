@@ -54,8 +54,8 @@ class RSCRecord extends RSCAppModel {
 	
 	/**
 	* Find function
-	* @param string type
-	* @param array options
+	* @param string $type
+	* @param array $options
 	* @return array result
 	* 
 	* Examples
@@ -67,7 +67,7 @@ class RSCRecord extends RSCAppModel {
 	*/
 	public function find($type = 'first', $options = array()){
 		if (!$this->DNS) {
-			$this->_erorr('Unable to connect to DNS.');
+			$this->_error('Unable to connect to DNS.');
 		}
 		$filter = null;
 		if (!empty($options['conditions'])) {
@@ -79,11 +79,11 @@ class RSCRecord extends RSCAppModel {
 		$Domain = $this->__getDomainObjectByZone($filter['zone']);
 		unset($filter['zone']);
 		
-		$retval = array();
-		$records = $Domain->RecordList($filter);
-		while ($record = $records->Next()) {
-			$retval[] = array(
-				$this->alias => array(
+		$retval = [];
+		$records = $Domain->recordList($filter);
+		while ($record = $records->next()) {
+			$retval[] = [
+				$this->alias => [
 					'name' => $record->Name(),
 					'id' => $record->id,
 					'type' => $record->type,
@@ -92,8 +92,8 @@ class RSCRecord extends RSCAppModel {
 					'created' => $record->created,
 					'updated' => $record->updated,
 					'zone' => $Domain->Name()
-				)
-			);
+				]
+			];
 		}
 		if ($type === 'first' && !empty($retval)) {
 			return $retval[0];
@@ -103,59 +103,48 @@ class RSCRecord extends RSCAppModel {
 	
 	/**
 	* Checks to see if a name recordExists
-	* @param string name
+	* @param string $name
+	* @param string $zone
+	* @param string $type (optional)
 	* @return mixed boolean false if doesn't exist, returns array of Record if recordExists
 	*/
-	public function recordExists($name = null, $zone) {
-		if (!$this->DNS) {
-			$this->_erorr('Unable to connect to DNS.');
-		}
+	public function recordExists($name, $zone, $type = 'CNAME') {
 		if (empty($name) || empty($zone)) {
-			$this->_erorr('Zone and name required for exist search');
+			$this->_error('Zone and name required for exist search');
 		}
-		/** This doesn't work because conditions don't work.  Must traverse the whole record list for now.
-		return !!$this->find('first', array(
-			'conditions' => array('zone' => $zone, 'name' => $name)
-		));*/
-		
-		$records = $this->find('all', array('conditions' => array('zone' => $zone)));
-		foreach ($records as $record) {
-			if ($record[$this->alias]['name'] === $name) {
-				return $record;
-			}
-		}
-		return false;
+		return $this->__getRecordByNameZoneType($name, $zone, $type);
 	}
 	
 	/**
 	* Find record ID by name and zone
-	* @param string name
-	* @param string zone
+	* @param string $name
+	* @param string $zone
+	* @param string $type (optional)
 	* @return int id or false if not found.
 	*/
-	public function findIdByNameAndZone($name, $zone) {
+	public function findIdByNameAndZone($name, $zone, $type = 'CNAME') {
 		if (!$this->DNS) {
-			$this->_erorr('Unable to connect to DNS.');
+			$this->_error('Unable to connect to DNS.');
 		}
 		if (empty($name) || empty($zone)) {
-			$this->_erorr('Zone and name required for exist search');
+			$this->_error('Zone and name required for exist search');
 		}
-		if ($record = $this->recordExists($name, $zone)) {
-			return $record[$this->alias]['id'];
+		if ($record = $this->__getRecordByNameZoneType($name, $zone, $type)) {
+			return $record->id;
 		}
 		return false;
 	}
 	
 	/**
 	* Saves and updates a domain
-	* @param array of data
-	* @param boolean validation
-	* @param fieldList (ignored)
+	* @param array $data
+	* @param boolean $validate
+	* @param $fieldList (ignored)
 	* @return mixed array of domain or false if failure
 	*/
 	public function save($data = null, $validate = true, $fieldList = array()) {
 		if (!$this->DNS) {
-			$this->_erorr('Unable to connect to DNS.');
+			$this->_error('Unable to connect to DNS.');
 		}
 		$this->set($data);
 		if ($validate && !$this->validates()) {
@@ -166,11 +155,12 @@ class RSCRecord extends RSCAppModel {
 		}
 		$zone = $data['zone'];
 		unset($data['zone']);
-		if ($this->recordExists($data['name'], $zone)) {
-			$Record = $this->__getRecordByNameAndZone($data['name'], $zone);
+		$type = empty($data['type']) ? 'CNAME' : $data['type'];
+		$Record = $this->__getRecordByNameZoneType($data['name'], $zone, $type);
+		if (!empty($Record)) {
 			$Record->update($data);
 		} else {  // Create it
-			$async = $this->__getDomainObjectByZone($zone)->Record()->Create($data);
+			$async = $this->__getDomainObjectByZone($zone)->record($data)->create();
 			$async->waitFor('COMPLETED');  // Wait for asyncresponse to complete or error out
 			if ($async->status == 'ERROR') {
 				$this->_error(!empty($async->error->details) ? $async->error->details : "Unable to create DNS record for {$data['name']} on zone {$zone}.");
@@ -196,21 +186,22 @@ class RSCRecord extends RSCAppModel {
 	
 	/**
 	* Delete the Domain
-	* @param string name
-	* @param string zone
+	* @param string $name
+	* @param string $zone
+	* @param string $type (optional)
 	* @return boolean success
 	*/
-	public function delete($name = null, $zone = true /* true is for strict compliance */) {
+	public function delete($name = null, $zone = true, $type = 'CNAME') {  // true is for strict compliance
 		if (!$this->DNS) {
-			$this->_erorr('Unable to connect to DNS.');
+			$this->_error('Unable to connect to DNS.');
 		}
 		if (empty($name) || $zone === true || empty($zone)) {
 			$this->_error('zone and name are required to delete a record');
 		}
-		if (!$this->recordExists($name, $zone)) {
-			$this->_erorr("$name doesn't exist on $zone DNS.");
+		$Record = $this->__getRecordByNameZoneType($name, $zone, $type);
+		if (empty($Record)) {
+			$this->_error("$name doesn't exist on $zone DNS.");
 		}
-		$Record = $this->__getRecordByNameAndZone($name, $zone);
 		$result = $Record->delete();
 		if (!empty($result)) {
 			return true;
@@ -220,35 +211,35 @@ class RSCRecord extends RSCAppModel {
 	
 	/**
 	* Gives me the Domain object return because it's useful.
-	* @param string zone
+	* @param string $zone
 	* @return RackSpace\Domain object
 	*/
 	private function __getDomainObjectByZone($zone = null) {
 		if (!$this->DNS) {
-			$this->_erorr('Unable to connect to DNS.');
+			$this->_error('Unable to connect to DNS.');
 		}
-		$DomainList = $this->DNS->DomainList(array('name' => $zone));
-		if ($DomainList->Size() == 0) {
+		$domains = $this->DNS->domainList(['name' => $zone]);
+		if ($domains->size() == 0) {
 			$this->_error("$zone does not exist.");
 		}
-		return $DomainList->Next();
+		return $domains->next();
 	}
 	
 	/**
 	* Gives me the Record object return becasue it's useful
-	* @param string name
-	* @Param string zone
+	* @param string $name
+	* @param string $zone
+	* @param string $type (optional) – necessary for filter to function correctly
 	* @return RackSpace\Domain\Record object
 	*/
-	private function __getRecordByNameAndZone($name, $zone) {
+	private function __getRecordByNameZoneType($name, $zone, $type = 'CNAME') {
 		if (!$this->DNS) {
-			$this->_erorr('Unable to connect to DNS.');
+			$this->_error('Unable to connect to DNS.');
 		}
-		$id = $this->findIdByNameAndZone($name, $zone);
-		if (!$id) {
-			$this->_error("$name not found in $zone");
+		$records = $this->__getDomainObjectByZone($zone)->recordList(['type' => $type, 'name' => $name]);
+		if (empty($records->size()) && $type != 'CNAME') {  // Fall back to look for a CNAME record instead
+			$records = $this->__getDomainObjectByZone($zone)->recordList(['type' => 'CNAME', 'name' => $name]);
 		}
-		$Domain = $this->__getDomainObjectByZone($zone);
-		return $Domain->Record($id);
+		return $records->size() ? $records->next() : false;
 	}
 }
