@@ -132,12 +132,17 @@ class RSCDomain extends RSCAppModel {
 			$Domain = $this->__getDomainObjectByName($data['name']);
 			$Domain->update($data);
 		} else {
-			$Domain = $this->DNS->domain()->Create($data);
+			$async = $this->DNS->domain()->Create($data);
+			$async->waitFor('COMPLETED');  // Wait for asyncresponse to complete or error out
+			if ($async->status == 'ERROR') {
+				$this->_error(!empty($async->error->details) ? $async->error->details : "Unable to create domain for {$data['name']}.");
+			}
+			$Domain = !empty($async->response->domains) ? $async->response->domains[0] : null;
 		}
 		if ($Domain) {
 			return array(
 				$this->alias => array(
-					'name' => $Domain->Name(),
+					'name' => $Domain->name,
 					'ttl' => $Domain->ttl,
 					'created' => $Domain->created,
 					'emailAddress' => $Domain->emailAddress

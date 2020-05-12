@@ -189,10 +189,9 @@ class RSCFileCase extends CakeTestCase {
 		$url = $fileobj->PublicURL();
 		$this->assertPattern('#https?://.*\.png#', $url);
 		// test
-		$obj = $this->RSCFile->read(null, basename($this->testfile_img));
+		$obj = $this->RSCFile->_read(null, basename($this->testfile_img));
 		$this->assertTrue(is_object($obj));
 		$url = $obj->PublicURL();
 		$this->assertPattern('#https?://.*\.png#', $url);
 	}
 }
-

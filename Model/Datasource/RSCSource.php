@@ -8,7 +8,6 @@ class RSCSourceException extends CakeException {}
  * @link https://github.com/zeroasterisk/RSC-CakePHP-Plugin
  */
 App::uses('DataSource', 'Model/Datasource');
-App::import('Vendor', 'RSC.php-opencloud/lib/php-opencloud');
 class RSCSource extends DataSource {
 
 	/**
@@ -35,6 +34,7 @@ class RSCSource extends DataSource {
 	 */
 	public function __construct($config) {
 		if (!defined('RACKSPACE_US')) {
+			App::import('Vendor', 'RSC.php-opencloud/lib/php-opencloud');
 			// difficult finding these files on some systems
 			require_once(APP . 'Plugin/RSC/Vendor/php-opencloud/lib/php-opencloud.php');
 			require_once(APP . 'Plugin/RSC/Vendor/php-opencloud/lib/OpenCloud/Globals.php');
